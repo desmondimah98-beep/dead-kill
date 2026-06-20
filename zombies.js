@@ -32,7 +32,7 @@
     group.add(jaw);
 
     // arms (slightly raised, reaching)
-    const armGeo = new THREE.CapsuleGeometry(0.08, 0.55, 4, 6);
+    const armGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.55, 6);
     const armL = new THREE.Mesh(armGeo, skinMat);
     armL.position.set(-0.36, 1.2, 0.05);
     armL.rotation.z = 0.5;
@@ -49,7 +49,7 @@
     group.add(armR);
 
     // legs
-    const legGeo = new THREE.CapsuleGeometry(0.1, 0.6, 4, 6);
+    const legGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.6, 6);
     const legL = new THREE.Mesh(legGeo, clothMat);
     legL.position.set(-0.15, 0.5, 0);
     legL.castShadow = true;

@@ -99,6 +99,7 @@
 
   function wirePlayerEvents(){
     player.onLockChange = (locked) => {
+      if (isTouch) return; // pointer lock is desktop-only; never show this overlay on touch
       lockPrompt.classList.toggle('hidden', locked || !running);
     };
     player.onReloadStart = () => reloadIndicator.classList.remove('hidden');
@@ -250,42 +251,56 @@
   // ---------- Game loop ----------
   function loop(now){
     if (!running) return;
-    let dt = (now - lastTime) / 1000;
-    dt = Math.min(dt, 0.05);
-    lastTime = now;
+    try {
+      let dt = (now - lastTime) / 1000;
+      dt = Math.min(dt, 0.05);
+      lastTime = now;
 
-    player.update(dt, isTouch ? joyVec : null);
-    updateHealthHUD();
-    updateStaminaHUD();
+      player.update(dt, isTouch ? joyVec : null);
+      updateHealthHUD();
+      updateStaminaHUD();
 
-    zombies.update(dt, player.position, (dmg) => player.takeDamage(dmg));
+      zombies.update(dt, player.position, (dmg) => player.takeDamage(dmg));
 
-    // animate streetlamp flicker
-    if (world.lampLight){
-      world.lampLight.intensity = 2.0 + Math.sin(now*0.012) * 0.3 + (Math.random() < 0.02 ? -1.5 : 0);
+      // animate streetlamp flicker
+      if (world.lampLight){
+        world.lampLight.intensity = 2.0 + Math.sin(now*0.012) * 0.3 + (Math.random() < 0.02 ? -1.5 : 0);
+      }
+      // drift smoke
+      world.smokeMeshes.forEach((s, i) => {
+        s.position.x += Math.sin(now*0.0002 + i) * 0.003;
+        s.rotation.y += 0.0003;
+      });
+
+      if (damageFlashT > 0){
+        damageFlashT -= dt;
+        if (damageFlashT <= 0) damageVignette.style.opacity = '0';
+      }
+
+      renderer.render(world.scene, camera);
+      requestAnimationFrame(loop);
+    } catch (err) {
+      running = false;
+      console.error('Game loop error:', err);
+      showScreen('start');
+      alert('Something went wrong loading the 3D scene: ' + err.message);
     }
-    // drift smoke
-    world.smokeMeshes.forEach((s, i) => {
-      s.position.x += Math.sin(now*0.0002 + i) * 0.003;
-      s.rotation.y += 0.0003;
-    });
-
-    if (damageFlashT > 0){
-      damageFlashT -= dt;
-      if (damageFlashT <= 0) damageVignette.style.opacity = '0';
-    }
-
-    renderer.render(world.scene, camera);
-    requestAnimationFrame(loop);
   }
 
   // ---------- Game state transitions ----------
   function startGame(){
     showScreen('loading');
     document.getElementById('loading-fill').style.width = '0%';
-    initRenderer();
-    setupScene();
-    setupTouchControlsOnce();
+    try {
+      initRenderer();
+      setupScene();
+      setupTouchControlsOnce();
+    } catch (err) {
+      console.error('Setup error:', err);
+      showScreen('start');
+      alert('Could not start the game: ' + err.message);
+      return;
+    }
 
     let p = 0;
     const fakeLoad = setInterval(() => {
