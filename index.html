@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>DEAD LINE</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ START SCREEN ============ -->
+  <section id="screen-start" class="screen">
+    <div class="vignette"></div>
+    <div class="static-noise"></div>
+    <div class="start-content">
+      <p class="eyebrow">18+ &middot; Wave Survival</p>
+      <h1>DEAD<span>LINE</span></h1>
+      <p class="tagline">Hold the barricade. The street doesn't end.</p>
+
+      <div class="stat-row">
+        <div class="stat">
+          <span class="stat-label">Best Wave</span>
+          <span class="stat-value" id="best-wave-display">0</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Best Kills</span>
+          <span class="stat-value" id="best-kills-display">0</span>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-start">Enter the line</button>
+
+      <div class="controls-grid">
+        <div class="ctrl"><kbd>W A S D</kbd><span>Move</span></div>
+        <div class="ctrl"><kbd>Mouse</kbd><span>Aim</span></div>
+        <div class="ctrl"><kbd>Click</kbd><span>Fire</span></div>
+        <div class="ctrl"><kbd>R</kbd><span>Reload</span></div>
+        <div class="ctrl"><kbd>Shift</kbd><span>Sprint</span></div>
+        <div class="ctrl"><kbd>Space</kbd><span>Jump</span></div>
+      </div>
+      <p class="content-note">Contains stylized violence &amp; gore.</p>
+    </div>
+  </section>
+
+  <!-- ============ GAME SCREEN ============ -->
+  <section id="screen-game" class="screen hidden">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Crosshair -->
+    <div id="crosshair">
+      <span class="ch-dot"></span>
+      <span class="ch-line ch-top"></span>
+      <span class="ch-line ch-bottom"></span>
+      <span class="ch-line ch-left"></span>
+      <span class="ch-line ch-right"></span>
+    </div>
+
+    <!-- Damage / hit feedback -->
+    <div id="damage-vignette"></div>
+    <div id="hitmarker"></div>
+
+    <!-- HUD -->
+    <div class="hud">
+      <div class="hud-top-left">
+        <div class="wave-banner" id="wave-banner">WAVE 1</div>
+      </div>
+      <div class="hud-top-right">
+        <div class="hud-block">
+          <span class="hud-label">Survivors Down</span>
+          <span class="hud-value" id="kills-display">0</span>
+        </div>
+      </div>
+
+      <div class="hud-bottom-left">
+        <div class="health-wrap">
+          <span class="hud-label">Health</span>
+          <div class="bar health-bar"><div class="bar-fill" id="health-fill"></div></div>
+        </div>
+        <div class="stamina-wrap">
+          <span class="hud-label">Stamina</span>
+          <div class="bar stamina-bar"><div class="bar-fill" id="stamina-fill"></div></div>
+        </div>
+      </div>
+
+      <div class="hud-bottom-right">
+        <div class="ammo-block">
+          <span class="ammo-current" id="ammo-current">12</span>
+          <span class="ammo-sep">/</span>
+          <span class="ammo-reserve" id="ammo-reserve">48</span>
+          <span class="weapon-name" id="weapon-name">PISTOL</span>
+        </div>
+      </div>
+
+      <div class="wave-clear hidden" id="wave-clear-banner">
+        <span class="wc-title">WAVE CLEARED</span>
+        <span class="wc-sub" id="wave-clear-sub">Next wave incoming...</span>
+      </div>
+
+      <div class="reload-indicator hidden" id="reload-indicator">RELOADING</div>
+    </div>
+
+    <!-- Pause / pointer-lock prompt -->
+    <div id="lock-prompt" class="lock-prompt hidden">
+      <p>Click to resume aiming</p>
+    </div>
+
+    <!-- Mobile touch controls -->
+    <div id="touch-controls" class="touch-controls hidden">
+      <div id="touch-joystick" class="touch-joystick">
+        <div class="joystick-knob" id="joystick-knob"></div>
+      </div>
+      <button id="touch-fire" class="touch-btn touch-fire">FIRE</button>
+      <button id="touch-reload" class="touch-btn touch-reload">R</button>
+      <button id="touch-jump" class="touch-btn touch-jump">JUMP</button>
+    </div>
+  </section>
+
+  <!-- ============ GAME OVER SCREEN ============ -->
+  <section id="screen-over" class="screen hidden">
+    <div class="vignette"></div>
+    <h2 class="over-title">YOU DIDN'T HOLD</h2>
+    <p class="over-sub" id="over-cause">Overwhelmed at the barricade</p>
+    <div class="stat-row stat-row-final">
+      <div class="stat">
+        <span class="stat-label">Wave Reached</span>
+        <span class="stat-value" id="final-wave">1</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Kills</span>
+        <span class="stat-value" id="final-kills">0</span>
+      </div>
+    </div>
+    <p class="new-best hidden" id="new-best-msg">New record ✦</p>
+    <button class="btn btn-primary" id="btn-retry">Run again</button>
+    <button class="btn btn-ghost" id="btn-menu">Menu</button>
+  </section>
+
+  <!-- ============ LOADING SCREEN ============ -->
+  <section id="screen-loading" class="screen hidden">
+    <div class="loading-content">
+      <p class="loading-label">LOADING</p>
+      <div class="loading-bar"><div class="loading-fill" id="loading-fill"></div></div>
+    </div>
+  </section>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/three.min.js"></script>
+<script src="world.js"></script>
+<script src="player.js"></script>
+<script src="zombies.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
