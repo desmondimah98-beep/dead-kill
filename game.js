@@ -59,12 +59,12 @@
   let muzzleLight = null;
 
   function initRenderer(){
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.25;
     resize();
     window.addEventListener('resize', resize);
   }
@@ -72,7 +72,7 @@
   function resize(){
     W = window.innerWidth; H = window.innerHeight;
     renderer.setSize(W, H);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 3));
     if (camera){
       camera.aspect = W / H;
       camera.updateProjectionMatrix();
@@ -262,10 +262,6 @@
 
       zombies.update(dt, player.position, (dmg) => player.takeDamage(dmg));
 
-      // animate streetlamp flicker
-      if (world.lampLight){
-        world.lampLight.intensity = 2.0 + Math.sin(now*0.012) * 0.3 + (Math.random() < 0.02 ? -1.5 : 0);
-      }
       // drift smoke
       world.smokeMeshes.forEach((s, i) => {
         s.position.x += Math.sin(now*0.0002 + i) * 0.003;

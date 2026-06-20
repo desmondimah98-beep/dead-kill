@@ -6,40 +6,45 @@
 
   function buildWorld(){
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0a0c0a);
-    scene.fog = new THREE.FogExp2(0x14140f, 0.045);
+    scene.background = new THREE.Color(0x8fc7ec); // bright daytime sky blue
+    scene.fog = new THREE.FogExp2(0xb8d8ec, 0.006); // light atmospheric haze, long visibility
 
-    // ---------- Lighting ----------
-    const hemi = new THREE.HemisphereLight(0x3a3f3a, 0x0c0c0a, 0.55);
+    // ---------- Lighting (daylight) ----------
+    const hemi = new THREE.HemisphereLight(0xbfe0f5, 0x6b6450, 0.9); // sky blue / ground bounce
     scene.add(hemi);
 
-    const moon = new THREE.DirectionalLight(0x8fa3b0, 0.65);
-    moon.position.set(-30, 40, -20);
-    moon.castShadow = true;
-    moon.shadow.mapSize.set(2048, 2048);
-    moon.shadow.camera.left = -40;
-    moon.shadow.camera.right = 40;
-    moon.shadow.camera.top = 40;
-    moon.shadow.camera.bottom = -40;
-    moon.shadow.camera.far = 100;
-    moon.shadow.bias = -0.0015;
-    scene.add(moon);
+    const sun = new THREE.DirectionalLight(0xfff4e0, 2.2);
+    sun.position.set(-35, 55, -15);
+    sun.castShadow = true;
+    sun.shadow.mapSize.set(4096, 4096);
+    sun.shadow.camera.left = -45;
+    sun.shadow.camera.right = 45;
+    sun.shadow.camera.top = 45;
+    sun.shadow.camera.bottom = -45;
+    sun.shadow.camera.far = 120;
+    sun.shadow.bias = -0.0012;
+    sun.shadow.normalBias = 0.02;
+    scene.add(sun);
 
-    // flickering street lamp near barricade for atmosphere + practical light
-    const lampLight = new THREE.PointLight(0xffaa55, 2.2, 18, 2);
+    // soft fill light from opposite side to reduce harsh shadow blackness
+    const fill = new THREE.DirectionalLight(0xcfe8ff, 0.4);
+    fill.position.set(25, 20, 25);
+    scene.add(fill);
+
+    // ambient lamp left in place but off during daytime (unused visually, kept for compat)
+    const lampLight = new THREE.PointLight(0xffaa55, 0, 18, 2);
     lampLight.position.set(0, 6.2, -2);
-    lampLight.castShadow = true;
     scene.add(lampLight);
 
-    // ---------- Materials ----------
-    const asphaltMat = new THREE.MeshStandardMaterial({ color: 0x232321, roughness: 0.95, metalness: 0.05 });
-    const concreteMat = new THREE.MeshStandardMaterial({ color: 0x4a4943, roughness: 0.9, metalness: 0.0 });
-    const concreteDarkMat = new THREE.MeshStandardMaterial({ color: 0x2e2d29, roughness: 0.95 });
-    const rustMat = new THREE.MeshStandardMaterial({ color: 0x5a4631, roughness: 0.8, metalness: 0.2 });
-    const woodMat = new THREE.MeshStandardMaterial({ color: 0x3c2f22, roughness: 0.95 });
-    const metalMat = new THREE.MeshStandardMaterial({ color: 0x6b6b6b, roughness: 0.55, metalness: 0.6 });
-    const glassMat = new THREE.MeshStandardMaterial({ color: 0x1a2422, roughness: 0.2, metalness: 0.3, transparent:true, opacity:0.55 });
-    const sandbagMat = new THREE.MeshStandardMaterial({ color: 0x6f6650, roughness: 1 });
+    // ---------- Materials (brighter, daylight-appropriate) ----------
+    const asphaltMat = new THREE.MeshStandardMaterial({ color: 0x4a4a48, roughness: 0.92, metalness: 0.05 });
+    const concreteMat = new THREE.MeshStandardMaterial({ color: 0x9a958a, roughness: 0.85, metalness: 0.0 });
+    const concreteDarkMat = new THREE.MeshStandardMaterial({ color: 0x6b6258, roughness: 0.9 });
+    const rustMat = new THREE.MeshStandardMaterial({ color: 0x8a5f3a, roughness: 0.75, metalness: 0.25 });
+    const woodMat = new THREE.MeshStandardMaterial({ color: 0x5c4530, roughness: 0.9 });
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x9a9a9a, roughness: 0.45, metalness: 0.65 });
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x9fc9d9, roughness: 0.1, metalness: 0.2, transparent:true, opacity:0.45 });
+    const sandbagMat = new THREE.MeshStandardMaterial({ color: 0x9c8f63, roughness: 1 });
 
     const colliders = []; // {x,z,radius} simple cylinder colliders for zombie/player blocking
 
@@ -79,10 +84,10 @@
       b.castShadow = true;
       b.receiveShadow = true;
       scene.add(b);
-      // a few lit/dark window strips for detail
-      const winMat = Math.random() > 0.5
-        ? new THREE.MeshStandardMaterial({ color: 0xffcf8f, emissive: 0xffaa44, emissiveIntensity: 0.4, roughness:0.4 })
-        : new THREE.MeshStandardMaterial({ color: 0x10100c, roughness: 0.6 });
+      // window strips: daylight glass reflecting sky, some broken/dark
+      const winMat = Math.random() > 0.25
+        ? new THREE.MeshStandardMaterial({ color: 0x7fb8d4, roughness: 0.15, metalness: 0.3, transparent: true, opacity: 0.55 })
+        : new THREE.MeshStandardMaterial({ color: 0x1c1a16, roughness: 0.7 }); // broken/boarded window
       for (let row = 0; row < Math.floor(h/4); row++){
         const winGeo = new THREE.PlaneGeometry(w*0.7, 1.1);
         const win = new THREE.Mesh(winGeo, winMat);
@@ -154,8 +159,8 @@
       makeRubble((Math.random()-0.5)*24, -14 - Math.random()*100);
     }
 
-    // ---------- Streetlamps ----------
-    function makeLamp(x, z, lit){
+    // ---------- Streetlamps (dormant in daylight - off, just structural detail) ----------
+    function makeLamp(x, z){
       const group = new THREE.Group();
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.1,6,8), metalMat);
       pole.position.y = 3;
@@ -164,25 +169,19 @@
       const arm = new THREE.Mesh(new THREE.BoxGeometry(0.9,0.08,0.08), metalMat);
       arm.position.set(0.4, 5.9, 0);
       group.add(arm);
-      const headMat = lit
-        ? new THREE.MeshStandardMaterial({ color: 0xffcc88, emissive: 0xffaa55, emissiveIntensity: 1.2 })
-        : new THREE.MeshStandardMaterial({ color: 0x222222 });
+      const headMat = new THREE.MeshStandardMaterial({ color: 0x3a3a38, roughness: 0.5, metalness: 0.4 });
       const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), headMat);
       head.position.set(0.8, 5.85, 0);
+      head.castShadow = true;
       group.add(head);
-      if (lit){
-        const pl = new THREE.PointLight(0xffaa55, 1.1, 14, 2);
-        pl.position.set(0.8, 5.7, 0);
-        group.add(pl);
-      }
       group.position.set(x, 0, z);
       scene.add(group);
       colliders.push({ x, z, radius: 0.4 });
     }
     for (let i = 0; i < 6; i++){
       const z = -4 - i * 20;
-      makeLamp(-14, z, i % 2 === 0);
-      makeLamp(14, z + 10, i % 2 !== 0);
+      makeLamp(-14, z);
+      makeLamp(14, z + 10);
     }
 
     // ---------- THE BARRICADE (player's defensive position, faces -Z where zombies come from) ----------
@@ -222,14 +221,14 @@
     colliders.push({ x: 2.5, z: -3, radius: 0.9 });
 
     // chain-link / wreckage gate visual far down the street (zombie spawn dressing)
-    const gateMat = new THREE.MeshStandardMaterial({ color: 0x1c1c1a, roughness: 0.9 });
+    const gateMat = new THREE.MeshStandardMaterial({ color: 0x4a4844, roughness: 0.85 });
     const gate = new THREE.Mesh(new THREE.BoxGeometry(20, 5, 0.3), gateMat);
     gate.position.set(0, 2.5, -118);
     gate.castShadow = true;
     scene.add(gate);
 
     // ---------- Ambient atmosphere: drifting smoke planes ----------
-    const smokeMat = new THREE.MeshBasicMaterial({ color: 0x222220, transparent: true, opacity: 0.18, depthWrite: false });
+    const smokeMat = new THREE.MeshBasicMaterial({ color: 0xd8d2c0, transparent: true, opacity: 0.1, depthWrite: false });
     const smokeMeshes = [];
     for (let i = 0; i < 6; i++){
       const smoke = new THREE.Mesh(new THREE.PlaneGeometry(8 + Math.random()*6, 5 + Math.random()*4), smokeMat);

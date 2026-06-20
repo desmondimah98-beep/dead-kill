@@ -4,68 +4,161 @@
 (() => {
   'use strict';
 
-  const skinTones = [0x5e6b4f, 0x6b5e4f, 0x4f5e6b, 0x6b4f55, 0x5a5a4a];
+  const skinTones = [0x6b7a5a, 0x7a6b5a, 0x5a6b7a, 0x7a5a62, 0x6a6a58, 0x7a7064];
+  const clothTones = [0x2c2a24, 0x33302a, 0x2a2e30, 0x352a28, 0x2e2c24];
+  const woundMat = new THREE.MeshStandardMaterial({ color: 0x6b1418, roughness: 0.9, metalness: 0.0 });
 
   function buildZombieMesh(){
     const group = new THREE.Group();
     const tone = skinTones[Math.floor(Math.random()*skinTones.length)];
-    const skinMat = new THREE.MeshStandardMaterial({ color: tone, roughness: 0.95, metalness: 0.0 });
-    const clothMat = new THREE.MeshStandardMaterial({ color: 0x2c2a24, roughness: 1 });
-    const darkMat = new THREE.MeshStandardMaterial({ color: 0x1a1714, roughness: 1 });
+    const clothTone = clothTones[Math.floor(Math.random()*clothTones.length)];
+    const skinMat = new THREE.MeshStandardMaterial({ color: tone, roughness: 0.92, metalness: 0.0 });
+    const skinDarkMat = new THREE.MeshStandardMaterial({ color: tone, roughness: 0.95, metalness: 0.0 });
+    skinDarkMat.color.multiplyScalar(0.72);
+    const clothMat = new THREE.MeshStandardMaterial({ color: clothTone, roughness: 0.95 });
+    const clothTornMat = new THREE.MeshStandardMaterial({ color: clothTone, roughness: 1 });
+    clothTornMat.color.multiplyScalar(0.6);
+    const darkMat = new THREE.MeshStandardMaterial({ color: 0x15120f, roughness: 1 });
+    const eyeMat = new THREE.MeshStandardMaterial({ color: 0xd8c870, roughness: 0.4, emissive: 0x332200, emissiveIntensity: 0.15 });
 
-    // torso
-    const torso = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.32), clothMat);
-    torso.position.y = 1.15;
-    torso.castShadow = true;
-    group.add(torso);
+    const heightScale = 0.92 + Math.random() * 0.2; // body variety
+    group.scale.set(heightScale, heightScale, heightScale);
 
-    // head
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 10), skinMat);
-    head.position.y = 1.68;
+    // ---------- Pelvis / hip anchor ----------
+    const hips = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.22, 0.26), clothMat);
+    hips.position.y = 0.88;
+    hips.castShadow = true;
+    group.add(hips);
+
+    // ---------- Torso (two segments: lower/upper for a slight hunch) ----------
+    const torsoLower = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.32, 0.28), clothMat);
+    torsoLower.position.set(0, 1.08, 0.01);
+    torsoLower.castShadow = true;
+    group.add(torsoLower);
+
+    const torsoUpper = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.4, 0.3), clothMat);
+    torsoUpper.position.set(0, 1.4, -0.02);
+    torsoUpper.rotation.x = 0.12; // hunch forward
+    torsoUpper.castShadow = true;
+    group.add(torsoUpper);
+
+    // torn clothing strip detail on torso
+    for (let i = 0; i < 2; i++){
+      const tear = new THREE.Mesh(new THREE.BoxGeometry(0.1 + Math.random()*0.08, 0.18, 0.04), clothTornMat);
+      tear.position.set((Math.random()-0.5)*0.35, 1.25 + Math.random()*0.25, 0.16);
+      tear.rotation.z = (Math.random()-0.5)*0.6;
+      group.add(tear);
+    }
+    // exposed wound patch on torso (gore detail)
+    if (Math.random() > 0.4){
+      const wound = new THREE.Mesh(new THREE.CircleGeometry(0.07 + Math.random()*0.05, 8), woundMat);
+      wound.position.set((Math.random()-0.5)*0.25, 1.3 + Math.random()*0.2, 0.165);
+      group.add(wound);
+    }
+
+    // ---------- Neck + Head ----------
+    const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.12, 8), skinDarkMat);
+    neck.position.set(0, 1.62, 0.02);
+    group.add(neck);
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.18, 12, 10), skinMat);
+    head.position.set(0, 1.76, 0.03);
+    head.scale.set(0.92, 1.05, 0.95);
     head.castShadow = true;
     head.name = 'head';
     group.add(head);
 
-    // jaw detail (slightly offset box for gnarled look)
-    const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.14,0.08,0.12), darkMat);
-    jaw.position.set(0, 1.58, 0.14);
+    // cranium damage detail (some zombies have visible skull/wound on head)
+    if (Math.random() > 0.55){
+      const skullPatch = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), new THREE.MeshStandardMaterial({color:0xc8c0a8, roughness:0.8}));
+        skullPatch.position.set((Math.random()-0.5)*0.1, 1.85, -0.05);
+        skullPatch.scale.set(1, 0.6, 0.8);
+        group.add(skullPatch);
+    }
+
+    // jaw (offset down/forward, gnarled open-mouth look)
+    const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, 0.09), skinDarkMat);
+    jaw.position.set(0, 1.695, 0.1);
+    jaw.rotation.x = 0.35;
     group.add(jaw);
 
-    // arms (slightly raised, reaching)
-    const armGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.55, 6);
-    const armL = new THREE.Mesh(armGeo, skinMat);
-    armL.position.set(-0.36, 1.2, 0.05);
-    armL.rotation.z = 0.5;
-    armL.rotation.x = -0.3;
-    armL.castShadow = true;
-    armL.name = 'armL';
-    group.add(armL);
-    const armR = new THREE.Mesh(armGeo, skinMat);
-    armR.position.set(0.36, 1.2, 0.05);
-    armR.rotation.z = -0.5;
-    armR.rotation.x = -0.3;
-    armR.castShadow = true;
-    armR.name = 'armR';
-    group.add(armR);
+    // eyes (small emissive dots for a sickly glint)
+    [-1, 1].forEach(side => {
+      const eye = new THREE.Mesh(new THREE.SphereGeometry(0.018, 6, 6), eyeMat);
+      eye.position.set(side * 0.065, 1.78, 0.16);
+      group.add(eye);
+    });
 
-    // legs
-    const legGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.6, 6);
-    const legL = new THREE.Mesh(legGeo, clothMat);
-    legL.position.set(-0.15, 0.5, 0);
-    legL.castShadow = true;
-    legL.name = 'legL';
-    group.add(legL);
-    const legR = new THREE.Mesh(legGeo, clothMat);
-    legR.position.set(0.15, 0.5, 0);
-    legR.castShadow = true;
-    legR.name = 'legR';
-    group.add(legR);
+    // ---------- Arms: upper arm + forearm with elbow joint ----------
+    function buildArm(side){
+      const armGroup = new THREE.Group();
+      const upperArm = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.32, 7), skinMat);
+      upperArm.position.set(0, -0.16, 0);
+      upperArm.castShadow = true;
+      armGroup.add(upperArm);
+
+      const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.052, 7, 6), skinMat);
+      elbow.position.set(0, -0.32, 0);
+      armGroup.add(elbow);
+
+      const forearmGroup = new THREE.Group();
+      forearmGroup.position.set(0, -0.32, 0);
+      const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.04, 0.3, 7), skinDarkMat);
+      forearm.position.set(0, -0.15, 0.04);
+      forearm.rotation.x = -0.4; // bent forward, reaching
+      forearm.castShadow = true;
+      forearmGroup.add(forearm);
+
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.055, 7, 6), skinDarkMat);
+      hand.position.set(0, -0.28, 0.16);
+      hand.scale.set(0.9, 0.7, 1.1);
+      forearmGroup.add(hand);
+
+      armGroup.add(forearmGroup);
+      armGroup.position.set(side * 0.29, 1.46, 0);
+      armGroup.rotation.z = side * 0.45;
+      armGroup.name = side < 0 ? 'armL' : 'armR';
+      return armGroup;
+    }
+    const armL = buildArm(-1);
+    const armR = buildArm(1);
+    group.add(armL, armR);
+
+    // ---------- Legs: thigh + shin with knee ----------
+    function buildLeg(side){
+      const legGroup = new THREE.Group();
+      const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.36, 7), clothMat);
+      thigh.position.set(0, -0.18, 0);
+      thigh.castShadow = true;
+      legGroup.add(thigh);
+
+      const knee = new THREE.Mesh(new THREE.SphereGeometry(0.065, 7, 6), clothMat);
+      knee.position.set(0, -0.36, 0);
+      legGroup.add(knee);
+
+      const shin = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.05, 0.34, 7), skinDarkMat);
+      shin.position.set(0, -0.53, 0.01);
+      shin.castShadow = true;
+      legGroup.add(shin);
+
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.06, 0.18), darkMat);
+      foot.position.set(0, -0.71, 0.05);
+      legGroup.add(foot);
+
+      legGroup.position.set(side * 0.13, 0.88, 0);
+      legGroup.name = side < 0 ? 'legL' : 'legR';
+      return legGroup;
+    }
+    const legL = buildLeg(-1);
+    const legR = buildLeg(1);
+    group.add(legL, legR);
 
     group.userData.head = head;
     group.userData.legL = legL;
     group.userData.legR = legR;
     group.userData.armL = armL;
     group.userData.armR = armR;
+    group.userData.heightScale = heightScale;
 
     return group;
   }
@@ -149,13 +242,13 @@
       for (const z of self.zombies){
         if (!z.alive || z.dying) continue;
         // approximate zombie as a vertical capsule: test head sphere + body cylinder
-        const headPos = new THREE.Vector3(z.x, 1.68, z.z);
-        const headDist = raySphereDist(origin, dir, headPos, 0.26);
+        const headPos = new THREE.Vector3(z.x, 1.76, z.z);
+        const headDist = raySphereDist(origin, dir, headPos, 0.22);
         if (headDist !== null && headDist < closestDist){
           closestDist = headDist; closest = z; headshot = true;
         }
-        const bodyPos = new THREE.Vector3(z.x, 1.1, z.z);
-        const bodyDist = raySphereDist(origin, dir, bodyPos, 0.42);
+        const bodyPos = new THREE.Vector3(z.x, 1.25, z.z);
+        const bodyDist = raySphereDist(origin, dir, bodyPos, 0.36);
         if (bodyDist !== null && bodyDist < closestDist){
           closestDist = bodyDist; closest = z; headshot = false;
         }
